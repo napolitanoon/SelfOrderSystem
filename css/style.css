@@ -1,0 +1,1178 @@
+/* =====================================================
+   中華愛屋 セルフオーダーシステム
+   デザイン: プレゼンテーション111.pptx を忠実に再現
+   ステージ基準サイズ: 1280 x 720 (16:9)
+   ===================================================== */
+
+:root {
+  --bg:        #F7E4C9;  /* ページ背景 */
+  --dark:      #1E1007;  /* 外周バー・注文パネル */
+  --red:       #C00000;  /* 赤文字 */
+  --tan:       #D8BC96;  /* 罫線 */
+  --gold-tx:   #F5C55F;  /* 金文字 */
+  --cream-tx:  #FFFDE4;  /* 白系文字 */
+  --cream-tx2: #FFF8D4;
+  --hero-bg:   #630A04;  /* ヒーローバナー */
+  --card-bg:   #FBF1DC;  /* メニューカード */
+  --card-add:  #8B180F;  /* +ボタン */
+  --cart-card: #7E2016;  /* カート内カード */
+  --stepper:   #F4E1C3;  /* -+ボタン */
+  --gold-btn1: #EDBE4E;  /* 確定ボタン */
+  --gold-btn2: #D99F18;
+  --gold-num:  #E9B54D;  /* 合計金額 */
+  --line-gold: #C9A063;  /* 枠線ゴールド */
+  --ink:       #241505;  /* 濃い文字 */
+  --ink-sub:   #5C4626;  /* 補助文字(価格の税込表記など) */
+
+  /* 全体の基本書体: 教科書体(導入環境向け)→ 可読性重視のUDミンチョ体 */
+  --f-main: "HGS教科書体", "HGP教科書体", "HG教科書体", "BIZ UDPMincho", "Yu Mincho", "Hiragino Mincho ProN", "MS Mincho", serif;
+  /* テーブル番号の数字のみに使う装飾書体 */
+  --f-deco: "HGS行書体", "HG行書体", "HGP行書体", "Yuji Syuku", serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: #17100A;
+  font-family: var(--f-main);
+  -webkit-tap-highlight-color: transparent;
+}
+
+button { font-family: inherit; border: none; background: none; cursor: pointer; }
+
+/* 画面比率が16:9でない場合の左右余白を飾る装飾(ステージの外側、DOM順で#stageより手前=背面)
+   竹(take2.svg)を縦に繰り返し配置。表示・幅は余白の実測値に応じてJS(fitLetterbox)が調整する */
+.letterbox-deco {
+  position: fixed;
+  top: 0;
+  height: 100vh;
+  background-image: url("../img/deco/take2.svg");
+  background-repeat: repeat-y;
+  background-position: top center;
+  opacity: 0.24;
+  pointer-events: none;
+  display: none;
+}
+.letterbox-deco.left  { left: 0; }
+.letterbox-deco.right { right: 0; transform: scaleX(-1); }
+
+/* 「福」の房飾り: 竹の模様に重ねるアクセント(中央に1つだけ) */
+.letterbox-charm {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  width: auto;
+  opacity: 0.5;
+  pointer-events: none;
+  display: none;
+}
+.letterbox-charm.left  { left: 0; }
+.letterbox-charm.right { right: 0; }
+
+/* ===== ステージ(1280x720 を画面にフィットさせる) ===== */
+#stage {
+  position: absolute;
+  left: 0; top: 0;
+  width: 1280px; height: 720px;
+  transform-origin: 0 0;
+  background: var(--bg);
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* =====================================================
+   外周フレーム
+   ===================================================== */
+.edge { position: absolute; background: var(--dark); z-index: 20; }
+.edge-top    { left: 0; top: 0;      width: 1280px; height: 30px; }
+.edge-bottom { left: 0; top: 701px;  width: 1280px; height: 19px; }
+.edge-left   { left: 0; top: 0;      width: 30px;   height: 720px; }
+.edge-right  { left: 1250px; top: 0; width: 30px;   height: 720px; }
+
+.band { position: absolute; z-index: 21; display: flex; }
+.band .seg { height: 29.3px; }
+.band .seg.gold  { background: url("../img/deco/obi_gold.svg") repeat-x left center; background-size: 124px 29.3px; }
+.band .seg.gold2 { background: url("../img/deco/obi_gold.svg") repeat-x right center; background-size: 124px 29.3px; }
+.band .seg.red   { background: url("../img/deco/obi_red.svg")  repeat-x left center; background-size: 124px 29.3px; }
+
+.band-top    { left: 0; top: 0; width: 1280px; }
+.band-bottom { left: 0; top: 701px; width: 1280px; }
+/* 赤帯の範囲=軸を揃えたタブ/ヒーロー/メニューグリッドの範囲(中心x=588.5px、幅660.8px = left:258.1px〜right:918.9px)
+   に一致させ、上下の帯を左右対称の金-赤-金に統一(以前は上下で範囲が不揃いだった) */
+.band-top .seg.gold,  .band-bottom .seg.gold  { width: 258.1px; }
+.band-top .seg.red,   .band-bottom .seg.red   { width: 660.8px; }
+.band-top .seg.gold2, .band-bottom .seg.gold2 { width: 361.1px; }
+
+/* 左辺・右辺は横帯を90度回転させて配置 */
+.band-left, .band-right {
+  width: 672px; height: 29.3px;
+  top: 350.4px;
+  transform: rotate(90deg);
+}
+.band-left  { left: -321.4px; }
+.band-right { left: 928.7px; }
+.band-left .seg.gold,  .band-right .seg.gold  { width: 180px; }
+.band-left .seg.red,   .band-right .seg.red   { width: 369px; }
+.band-left .seg.gold2, .band-right .seg.gold2 { width: 123px; }
+
+/* 提灯: ご注文内容パネル(top:144.4)と重ならない高さに収める */
+/* 提灯: ご注文内容パネル(top:144.4)と重ならない高さに収める */
+.lantern {
+  position: absolute;
+  left: 1206px; top: 4px;
+  width: 42px; height: 134px;
+  z-index: 40;
+  pointer-events: none;
+}
+
+/* =====================================================
+   左サイドバー
+   ===================================================== */
+/* 帯装飾(上30px・左30px)に接するが重ならないよう縮小して配置 */
+.logo-wrap { position: absolute; left: 30px; top: 30px; width: 200px; height: 193.5px; z-index: 23; }
+.logo-wrap img { width: 100%; height: 100%; object-fit: contain; }
+/* 「中華」「愛屋」が1つのまとまり(ゲシュタルト)に見えるよう2x2で密に配置 */
+.logo-text {
+  position: absolute; left: 0; right: 0; top: 47px;
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  justify-content: center;
+  column-gap: 3px; row-gap: 1px;
+  color: var(--gold-tx);
+  font-family: var(--f-main);
+  font-weight: bold;
+  font-size: 35px;
+  line-height: 1.15;
+}
+.logo-text span { text-align: center; }
+
+/* 蓮: ロゴより前面に表示(以前はロゴ画像の背後に隠れていた) */
+.deco-lotus { position: absolute; left: -14px; top: 194px; width: 113.4px; z-index: 24; pointer-events: none; }
+
+/* ロゴ(愛屋の中心=水平130px)を基準にテーブル札・サイドボタン・言語切替の中心軸を統一 */
+.table-card { position: absolute; left: 31.35px; top: 242.1px; width: 197.3px; height: 158px; z-index: 6; }
+.table-card > img { position: absolute; inset: 0; width: 100%; height: 100%; }
+.table-label {
+  position: relative;
+  margin-top: 26px;
+  text-align: center;
+  color: var(--red);
+  font-family: var(--f-main);
+  font-size: 21px;
+  font-weight: bold;
+}
+.table-num {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  margin-top: -8px;
+}
+.table-num .num {
+  font-family: var(--f-deco);
+  font-size: 80px;
+  font-weight: bold;
+  color: var(--red);
+  line-height: 1.15;
+}
+.table-num .ban {
+  font-family: var(--f-main);
+  font-size: 56px;
+  font-weight: bold;
+  color: var(--red);
+  line-height: 1;
+}
+
+/* テーブル札→アレルギー情報→言語切替→玄武虎の間隔を約11.5pxで統一(近接) */
+.side-menu {
+  position: absolute; left: 39.15px; top: 418.75px; width: 181.7px;
+  border: 1.5px solid var(--line-gold);
+  border-radius: 5px;
+  z-index: 6;
+}
+.side-btn {
+  display: flex; align-items: center; gap: 11px;
+  width: 100%; height: 58px;
+  padding: 0 12px;
+  font-size: 16px; font-weight: bold;
+  color: #2B1B10;
+  font-family: var(--f-main);
+}
+.side-btn + .side-btn { border-top: 1.5px solid var(--line-gold); }
+.side-btn:active { background: rgba(201, 160, 99, 0.18); }
+.side-ico {
+  flex: none;
+  width: 25px; height: 25px;
+  border-radius: 50%;
+  background: #3A2A1B;
+  color: #F7E4C9;
+  font-size: 15px; font-weight: bold;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.lang-switch {
+  position: absolute; left: 39.15px; top: 553.4px; width: 181.7px; height: 48px;
+  border: 1.5px solid var(--line-gold);
+  border-radius: 5px;
+  display: flex; align-items: center; justify-content: center;
+  gap: 9px;
+  z-index: 6;
+}
+.globe { width: 21px; height: 21px; color: #2B1B10; }
+.lang { font-size: 15px; font-weight: bold; color: var(--ink-sub); font-family: var(--f-main); padding: 4px 2px; }
+.lang.active { color: #2B1B10; font-weight: bold; }
+.lang-sep { width: 1px; height: 18px; background: var(--line-gold); }
+
+/* 四神: ステージ下端(720px)で見切れないサイズに調整 */
+.deco-genbu { position: absolute; left: 7px;   top: 620px; width: 122px; z-index: 30; pointer-events: none; }
+.deco-tora  { position: absolute; left: 132px; top: 620px; width: 119px; z-index: 30; pointer-events: none; }
+
+.v-divider { position: absolute; left: 238.4px; top: 37.4px; width: 1px; height: 671px; background: var(--tan); }
+
+/* =====================================================
+   お知らせ欄(帯とカテゴリタブの間、右→左に流れる)
+   ===================================================== */
+.ticker {
+  /* ヒーロー/メニューグリッド(中心x=588.5)に軸を揃える */
+  position: absolute; left: 258.1px; top: 34px;
+  width: 660.8px; height: 23px;
+  background: var(--dark);
+  border-radius: 4px;
+  overflow: hidden;
+  z-index: 7;
+}
+/* メッセージは1つずつ表示し、流れ終えたら次のメッセージに切り替える(JSがrunクラスを再付与) */
+.ticker-track {
+  position: absolute; top: 0; left: 0; height: 100%;
+  display: flex; align-items: center;
+  white-space: nowrap;
+  color: var(--gold-tx);
+  font-size: 12.5px; font-weight: bold;
+  /* 660.8px(.tickerの幅)より確実に大きい固定値にして、短い文章でも
+     必ず箱の外側から流れ込むようにする(%指定は自身の文字幅基準になり
+     短文だと最初から一部見えてしまうため) */
+  transform: translateX(700px);
+  will-change: transform;
+}
+.ticker-track.run { animation: tickerRun var(--ticker-dur, 8s) linear forwards; }
+@keyframes tickerRun {
+  from { transform: translateX(700px); }
+  to   { transform: translateX(-100%); }
+}
+
+/* =====================================================
+   カテゴリタブ
+   ===================================================== */
+.tabs {
+  /* ヒーロー/メニューグリッド(中心x=588.5)に軸を揃える */
+  position: absolute; left: 258.1px; top: 64px;
+  width: 660.8px; height: 52px;
+  display: flex;
+  border-top: 1px solid var(--tan);
+  border-bottom: 1px solid var(--tan);
+  z-index: 7;
+}
+.tab {
+  flex: 1;
+  display: flex; align-items: center; justify-content: center;
+  gap: 4px;
+  padding: 0 2px 0 3px;
+  border-right: 1px solid var(--tan);
+  transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+}
+.tab:first-child { border-left: 1px solid var(--tan); }
+/* 選択中のタブを浮き上がらせて「押せるボタン」であることを分かりやすくする */
+.tab.active { background: var(--red); box-shadow: 0 3px 6px rgba(192, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25); position: relative; z-index: 1; }
+.tab:active { background: rgba(255, 253, 244, 0.6); transform: scale(0.97); }
+.tab.active:active { background: #A50909; }
+.t-ico {
+  flex: none;
+  width: 26px; height: 26px;
+  color: var(--red);
+  display: flex; align-items: center; justify-content: center;
+  transition: color 0.15s;
+}
+/* deco/内のアイコン画像を使用(従来のSVGの約1.8倍のサイズで表示) */
+.t-ico img { width: 24px; height: 24px; object-fit: contain; }
+/* 選択中は赤背景に沈んで見えにくいため、ラベル文字と同系統の明るい色に反転 */
+.tab.active .t-ico img { filter: brightness(0) invert(1); }
+.tab.active .t-ico { color: #FFE3C4; }
+.tab-label {
+  text-align: center;
+  font-size: 16px;
+  color: var(--ink);
+  font-family: var(--f-main);
+  font-weight: bold;
+  line-height: 1.15;
+  white-space: nowrap;
+  transition: color 0.15s;
+}
+.tab[data-cat="drink"] .tab-label { font-size: 13px; white-space: normal; }
+.tab.active .tab-label { color: #FFF3DC; }
+
+/* =====================================================
+   店員呼び出し
+   ===================================================== */
+/* 店員呼び出し・履歴/会計: 注文パネル左端(955.5)から提灯(1206)手前までに2つ並べる */
+.staff-call {
+  position: absolute; top: 48.4px;
+  width: 117px; height: 72px;
+  background: #211E1A;
+  border-radius: 12px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 5px;
+  z-index: 8;
+  box-shadow: 0 3px 8px rgba(30, 16, 7, 0.35);
+}
+#btnStaff   { left: 938.6px; }
+/* 履歴・会計は店員呼び出しと見分けやすいよう、ヒーローバナーと同系統の深い赤に変更 */
+#btnHistory { left: 1065.6px; background: var(--hero-bg); }
+.staff-call:active { transform: scale(0.97); }
+.bell { width: 24px; height: 24px; line-height: 1; display: flex; align-items: center; justify-content: center; }
+/* 濃色アイコン画像は暗い背景に沈むため白へ反転 */
+.bell img { width: 24px; height: 24px; object-fit: contain; filter: brightness(0) invert(1); }
+.staff-call.ringing .bell { animation: ring 0.7s ease; }
+@keyframes ring {
+  0%, 100% { transform: rotate(0); }
+  20% { transform: rotate(18deg); }
+  40% { transform: rotate(-14deg); }
+  60% { transform: rotate(9deg); }
+  80% { transform: rotate(-5deg); }
+}
+.staff-title { font-size: 13.5px; font-weight: bold; color: #FFF6DC; white-space: nowrap; }
+
+/* =====================================================
+   メイン(ヒーロー+メニュー)
+   ===================================================== */
+.menu-area {
+  position: absolute; left: 241px; top: 120px;
+  width: 695px; height: 581px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  z-index: 6;
+}
+.menu-area::-webkit-scrollbar { display: none; }
+
+/* メニューエリア背景を右から左に流れる雲(新設)。menu-areaと同じ範囲だが
+   別要素なのでスクロールに追従せず、常に同じ位置に留まる */
+.cloud-layer {
+  position: absolute; left: 241px; top: 120px;
+  width: 695px; height: 581px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 5;
+}
+.cloud-el {
+  position: absolute; left: 695px;
+  width: 190px;
+  opacity: 0.34;
+  animation: cloudFlow linear forwards;
+}
+@keyframes cloudFlow {
+  to { transform: translateX(-900px); }
+}
+
+/* ヒーロー全体のラッパー: 矢印を枠の外側(このラッパー内・カード外)に配置するための基準枠
+   左右マージンをカード一覧・もっと見るボタンと揃えて40px/40pxに統一(整列) */
+.hero-wrap {
+  position: relative;
+  margin: 15.3px 0 0 40px;
+  width: 615px;
+}
+.hero {
+  position: relative;
+  width: 615px; height: 192px;
+  background: var(--hero-bg);
+  border-radius: 30px;
+  overflow: hidden;
+}
+.hero-dragon { position: absolute; left: 2px; top: 14px; height: 162px; }
+
+/* スライド(v1のヒーローと同じ様式で複数枚) */
+.hero-slides { position: absolute; inset: 0; }
+.slide {
+  position: absolute; inset: 0;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+}
+.slide.active { opacity: 1; pointer-events: auto; }
+
+/* 文字ブロック(タグ・料理名・説明文)は左端96pxに揃え、一つのまとまりとして近接配置(整列・近接) */
+.hero-catch {
+  position: absolute; left: 96px; top: 15px;
+  display: inline-block;
+  padding: 3px 12px;
+  border: 1px solid rgba(245, 197, 95, 0.55);
+  border-radius: 999px;
+  font-size: 12.5px; font-weight: bold;
+  letter-spacing: 1px;
+  color: var(--gold-tx);
+}
+.hero-title {
+  position: absolute; left: 96px; top: 46px;
+  font-family: var(--f-main);
+  font-size: 33px; font-weight: bold;
+  color: var(--gold-tx);
+  letter-spacing: 2px;
+  white-space: nowrap;
+}
+.hero-desc {
+  position: absolute; left: 96px; top: 89px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--cream-tx2);
+}
+/* 料理写真とボタンは右端12pxに揃え、写真の直下にボタンを近接配置(整列・近接・対比)
+   スライドショー用は透過画像を想定し、メニューカードより大きく表示する */
+.hero-photo {
+  /* 縦(top/height)は据え置きのまま横方向にのみ拡大(横長に) */
+  position: absolute; right: 12px; top: 0px;
+  width: 230px; height: 176px;
+  object-fit: contain;
+  pointer-events: none;
+}
+/* 写真未提供の品はアイコンの仮置きプレート */
+.h-plate {
+  position: absolute; right: 18px; top: 10px;
+  width: 138px; height: 138px;
+  border-radius: 50%;
+  background: rgba(255, 240, 210, 0.07);
+  border: 1.5px solid rgba(245, 197, 95, 0.45);
+  box-shadow: 0 0 0 6px rgba(245, 197, 95, 0.12);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 64px;
+}
+
+/* 価格+注文する: 写真の右端に揃えて直下に配置 */
+.h-buy {
+  position: absolute; right: 18px; bottom: 11px;
+  height: 26px;
+  display: flex; align-items: center;
+  gap: 8px;
+}
+.h-price { font-size: 15px; font-weight: bold; color: #FFE9B8; white-space: nowrap; }
+.h-price small { font-size: 10px; font-weight: normal; margin-left: 2px; color: #E5CF9F; }
+.h-add {
+  height: 26px;
+  padding: 0 13px;
+  border-radius: 13px;
+  background: linear-gradient(#EDBE4E, #D99F18);
+  color: #2A1B06;
+  font-family: var(--f-main);
+  font-size: 12.5px; font-weight: bold;
+  white-space: nowrap;
+  display: flex; align-items: center;
+}
+.h-add:active { transform: scale(0.93); }
+
+/* 左右の切替矢印: バナーの外側(左右の余白)に配置 */
+/* 文字グリフ(フォント依存で見た目の重心がずれる)ではなくSVGパスで正確に中心を取る(.chevと同様) */
+.h-arrow {
+  position: absolute; top: 50%;
+  transform: translateY(-50%);
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--card-bg);
+  border: 1.5px solid var(--line-gold);
+  color: var(--red);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 1px 4px rgba(110, 74, 33, 0.25);
+}
+.h-arrow svg { width: 14px; height: 14px; display: block; }
+.h-arrow.prev { left: -32px; }
+.h-arrow.next { right: -32px; }
+.h-arrow:active { background: #F1DFBE; transform: translateY(-50%) scale(0.9); }
+
+/* 切替ドット: バナーの外側(下)に配置 */
+.hero-dots {
+  display: flex; justify-content: center;
+  gap: 7px;
+  margin: 9px 0 0 0;
+}
+.hdot {
+  width: 7px; height: 7px;
+  border-radius: 999px;
+  background: rgba(36, 21, 5, 0.22);
+  transition: width 0.25s, background 0.25s;
+}
+.hdot.active { width: 20px; background: var(--red); }
+
+.section-head {
+  display: flex; align-items: center;
+  gap: 7px;
+  margin: 2px 0 0 5px;
+  height: 26px;
+}
+.dia { flex: none; width: 11.3px; height: 11.3px; background: var(--red); transform: rotate(45deg); }
+.section-head h2 {
+  font-family: var(--f-main);
+  font-size: 19px; font-weight: bold;
+  color: var(--ink);
+  letter-spacing: 1px;
+}
+.rule { flex: 1; height: 1px; background: var(--tan); margin: 0 -15px 0 6px; }
+
+/* ----- メニューカード ----- */
+/* ヒーロー・もっと見ると軸を揃えるため左右マージンを40pxに統一(整列) */
+.menu-grid {
+  margin: 0 0 0 40px;
+  width: 615px;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  column-gap: 7.7px;
+  row-gap: 11.5px;
+}
+.card {
+  position: relative;
+  height: 141px;
+  background: var(--card-bg);
+  border-radius: 9px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(110, 74, 33, 0.18);
+  animation: cardIn 0.25s ease both;
+}
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+.card:active { transform: scale(0.97); }
+.thumb {
+  height: 88px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 47px;
+  background: radial-gradient(circle at 50% 42%, #FFF8E6, #F1DDBA);
+}
+.thumb img { width: 100%; height: 100%; object-fit: cover; }
+.card-name {
+  margin: 4px 8px 0;
+  font-size: 13px; font-weight: bold;
+  color: var(--ink);
+  white-space: nowrap; overflow: hidden;
+}
+/* 価格は+ボタンと高さを揃えてカード左下に配置(整列)。税込表記も同じ太さに */
+.card-price {
+  position: absolute; left: 9px; bottom: 9px;
+  display: flex; align-items: baseline; gap: 2px;
+  font-size: 15px; font-weight: bold;
+  color: var(--ink);
+}
+.card-price small { font-size: 10.5px; font-weight: bold; color: var(--ink-sub); }
+/* 押せるボタンだと分かるよう、グラデーション+影+ハイライト縁で立体感を出す */
+.add-btn {
+  position: absolute; right: 7px; bottom: 7px;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #a8241a 0%, var(--card-add) 60%, #6e1109 100%);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 2px 4px rgba(20, 8, 2, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.3);
+  color: #FBF1DC;
+  font-size: 17px; font-weight: bold;
+  line-height: 22px; text-align: center;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+.add-btn:active { transform: scale(1.25); box-shadow: 0 1px 2px rgba(20, 8, 2, 0.4), inset 0 1px 2px rgba(0, 0, 0, 0.3); }
+
+.more-wrap { display: flex; justify-content: center; margin-top: 3px; }
+
+/* ジャンル最大展開後の上下ドラッグでジャンル切替する際のヒント表示(新設) */
+.swipe-hint {
+  position: absolute; left: 50%; bottom: 10px;
+  transform: translateX(-50%) scale(0.5);
+  opacity: 0;
+  background: rgba(30, 16, 7, 0.88);
+  color: #FFF6DC;
+  padding: 8px 18px;
+  border-radius: 20px;
+  font-size: 13px; font-weight: bold;
+  display: flex; align-items: center; gap: 7px;
+  pointer-events: none;
+  z-index: 50;
+  white-space: nowrap;
+}
+/* 「前のジャンルへ」は上端でのドラッグに対応するヒントなので、ジャンル名(section-head)の
+   区切り線あたりに表示して「次のジャンルへ」(下端でのドラッグ・下部表示)と区別する */
+.swipe-hint.prev { bottom: auto; top: 232px; }
+.swipe-hint-arrow { display: inline-block; color: var(--gold-tx); font-size: 22px; line-height: 1; }
+.more-btn {
+  display: flex; align-items: center; justify-content: center;
+  gap: 9px;
+  width: 132px; height: 33px;
+  padding: 0 8px 0 16px;
+  border: 1px solid var(--line-gold);
+  border-radius: 17px;
+  background: #FBF3E0;
+  font-size: 14px; font-weight: bold;
+  color: var(--ink);
+  font-family: var(--f-main);
+}
+.more-btn:active { background: #F1DFBE; }
+/* スライドショーの矢印(.h-arrow)と同じ丸ボタン形式。
+   文字グリフ(フォント依存で環境ごとに見た目の重心がずれる)ではなくSVGパスを使うことで、
+   フォントに依存せず正確に中心を取れるようにしている */
+.chev {
+  flex: none;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: var(--card-bg);
+  border: 1px solid var(--line-gold);
+  color: var(--red);
+  display: flex; align-items: center; justify-content: center;
+}
+.chev svg { width: 11px; height: 11px; display: block; }
+
+/* =====================================================
+   ご注文内容パネル
+   ===================================================== */
+.order-panel {
+  /* 中央コンテンツ(赤帯範囲258.1-918.9px)を基準に、左サイドバーとの間隔(19.7px)に
+     揃うよう右側全体を16.9px左へ移動(以前は左右の余白が不揃いだった) */
+  position: absolute; left: 938.6px; top: 144.4px;
+  width: 294.1px; height: 468px;
+  background: var(--dark);
+  border-radius: 34px;
+  z-index: 8;
+  display: flex; flex-direction: column;
+  padding: 15px 14px 16px;
+}
+.order-head { display: flex; align-items: center; gap: 8px; padding: 0 3px; }
+.cart-ico { width: 38px; height: 38px; flex: none; }
+.order-head h2 {
+  flex: 1;
+  text-align: center;
+  font-size: 24px; font-weight: bold;
+  color: var(--cream-tx);
+  letter-spacing: 2px;
+}
+.cart-badge {
+  flex: none;
+  min-width: 24px; height: 24px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: #FFC000;
+  color: var(--ink);
+  font-size: 13px; font-weight: bold;
+  display: flex; align-items: center; justify-content: center;
+}
+.cart-badge.pulse { animation: pulse 0.3s ease; }
+@keyframes pulse { 50% { transform: scale(1.35); } }
+
+.cart-items {
+  flex: 1;
+  margin-top: 11px;
+  overflow-y: auto;
+  scrollbar-width: none;
+  display: flex; flex-direction: column;
+  gap: 8px;
+}
+.cart-items::-webkit-scrollbar { display: none; }
+.cart-empty { margin-top: 34px; text-align: center; font-size: 13px; color: #9C8567; }
+
+.cart-item {
+  flex: none;
+  display: flex; gap: 9px;
+  background: var(--cart-card);
+  border-radius: 9px;
+  padding: 7px;
+  animation: cardIn 0.2s ease both;
+}
+.c-thumb {
+  flex: none;
+  width: 50px; height: 50px;
+  border-radius: 6px;
+  background: radial-gradient(circle at 50% 42%, #FFF8E6, #F1DDBA);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 27px;
+  overflow: hidden;
+}
+.c-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.c-info { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: space-between; padding: 1px 0; }
+.c-name {
+  font-size: 12.5px; font-weight: bold;
+  color: #FFF6DF;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.c-opt { display: block; font-size: 10px; font-weight: normal; color: #E5CF9F; }
+.c-bottom { display: flex; align-items: center; }
+.c-price { flex: 1; font-size: 13px; font-weight: bold; color: #FFEFC9; }
+.q-btn {
+  width: 21px; height: 21px;
+  border-radius: 4px;
+  background: var(--stepper);
+  color: var(--ink);
+  font-size: 14px; font-weight: bold;
+  line-height: 21px; text-align: center;
+}
+.q-btn:active { transform: scale(0.88); }
+.q-num { width: 22px; text-align: center; font-size: 13.5px; font-weight: bold; color: #FFF6DF; }
+
+.order-totals { flex: none; margin-top: 10px; }
+.t-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin: 4px 3px;
+  font-size: 13.5px;
+  color: #F2E6CE;
+}
+.t-row span:last-child { font-size: 15px; }
+.t-sep { height: 1px; background: rgba(216, 188, 150, 0.45); margin: 9px 0 8px; }
+.t-label { margin: 0 3px; font-size: 13.5px; color: #F2E6CE; }
+.t-total {
+  margin: 0 3px;
+  text-align: right;
+  color: var(--gold-num);
+}
+.t-total span { font-size: 34px; font-weight: bold; letter-spacing: 1px; }
+.t-total small { font-size: 12px; margin-left: 5px; color: #E5CF9F; }
+
+.confirm-btn {
+  margin-top: 10px;
+  width: 100%; height: 46px;
+  border-radius: 9px;
+  background: linear-gradient(#EDBE4E, #D99F18);
+  color: #2A1B06;
+  font-size: 19px; font-weight: bold;
+  letter-spacing: 2px;
+  display: flex; align-items: center; justify-content: center;
+  gap: 10px;
+}
+.confirm-btn:active { transform: scale(0.97); }
+.confirm-btn .arrow { font-size: 24px; font-weight: bold; margin-top: -3px; }
+/* 商品が選択されている間、確定ボタンを発光させる */
+.confirm-btn.glow { animation: btnGlow 1.6s ease-in-out infinite; }
+@keyframes btnGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(237, 190, 78, 0); }
+  50%      { box-shadow: 0 0 16px 4px rgba(237, 190, 78, 0.7); }
+}
+
+/* 龍・鳳凰: 左側の玄武・虎(下端約717px)とベースラインを揃え、一回り大きく調整
+   (ご注文内容パネル下端612.4pxより下・カード一覧右端896pxより右に収める) */
+.deco-dragon-r { position: absolute; left: 933.1px; top: 615px; width: 160px; z-index: 30; pointer-events: none; }
+.deco-suzaku   { position: absolute; left: 1083.1px; top: 601px; width: 160px; z-index: 30; pointer-events: none; }
+
+/* =====================================================
+   モーダル
+   ===================================================== */
+.overlay {
+  position: absolute; inset: 0;
+  z-index: 100;
+  background: rgba(24, 12, 4, 0.55);
+  display: flex; align-items: center; justify-content: center;
+}
+.overlay[hidden] { display: none; }
+
+.modal {
+  position: relative;
+  width: 470px;
+  max-height: 640px;
+  background: var(--card-bg);
+  border: 2px solid var(--line-gold);
+  border-radius: 15px;
+  padding: 24px 28px 20px;
+  box-shadow: 0 10px 40px rgba(20, 8, 2, 0.5);
+  animation: pop 0.22s ease;
+  display: flex; flex-direction: column;
+  overflow-y: auto;
+}
+.modal[hidden] { display: none; }
+.modal.small { width: 390px; }
+.modal.wide  { width: 620px; }
+.modal.wide#modalTopping { width: 660px; }
+
+.m-close {
+  position: absolute; top: 14px; right: 14px;
+  flex: none;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--card-bg);
+  border: 1.5px solid var(--line-gold);
+  color: var(--ink);
+  font-size: 15px; font-weight: bold;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 2;
+}
+.m-close:active { background: #F1DFBE; }
+@keyframes pop {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: none; }
+}
+
+.m-title {
+  display: flex; align-items: center; gap: 9px;
+  font-size: 22px; font-weight: bold;
+  color: #A50E0E;
+}
+.m-title.center { justify-content: center; }
+.m-note { margin-top: 9px; font-size: 14px; font-weight: bold; line-height: 1.7; color: #4A3623; }
+.m-note.center { text-align: center; }
+.m-sub {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 14px;
+  font-size: 15px; font-weight: bold;
+  color: var(--ink);
+}
+.m-sub .dia { width: 9px; height: 9px; }
+
+.m-list {
+  margin-top: 12px;
+  border-top: 1px solid var(--line-gold);
+  border-bottom: 1px solid var(--line-gold);
+  max-height: 210px;
+  min-height: 0;
+  overflow-y: auto;
+}
+.m-row {
+  display: flex; align-items: center;
+  padding: 8px 4px;
+  font-size: 14.5px;
+  color: var(--ink);
+}
+.m-row + .m-row { border-top: 1px dashed rgba(201, 160, 99, 0.5); }
+.m-row .r-icon {
+  flex: none; margin-right: 8px;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(circle at 50% 42%, #FFF8E6, #F1DDBA);
+}
+.m-row .r-icon img { width: 100%; height: 100%; object-fit: cover; }
+.m-row .r-name { flex: 1; font-weight: bold; }
+.m-row .r-qty { width: 52px; text-align: center; font-weight: bold; color: var(--ink-sub); }
+.m-row .r-amt { width: 78px; text-align: right; font-weight: bold; }
+
+.m-totalrow {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-top: 12px;
+  padding: 0 4px;
+  font-size: 15px; font-weight: bold;
+  color: var(--ink);
+}
+.m-totalrow strong { font-size: 24px; color: #A50E0E; }
+
+.m-actions {
+  display: flex; justify-content: flex-end;
+  gap: 12px;
+  margin-top: 18px;
+}
+/* ボタンが1つだけの操作(閉じる等)は中央揃え */
+.m-actions.center { justify-content: center; }
+.m-btn {
+  min-width: 120px;
+  padding: 11px 24px;
+  border-radius: 9px;
+  font-size: 15.5px; font-weight: bold;
+  font-family: var(--f-main);
+  letter-spacing: 1px;
+}
+.m-btn:active { transform: scale(0.96); }
+.m-btn.primary { background: linear-gradient(#EDBE4E, #D99F18); color: #2A1B06; }
+.m-btn.ghost   { border: 1.5px solid var(--line-gold); color: #4A3623; }
+
+.done-mark {
+  width: 58px; height: 58px;
+  margin: 0 auto 10px;
+  border-radius: 50%;
+  border: 3px solid #A50E0E;
+  color: #A50E0E;
+  font-size: 27px; font-weight: bold;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.staff-bell-big { text-align: center; margin-bottom: 8px; animation: ring 0.8s ease 0.15s; }
+.staff-bell-big img { width: 46px; height: 46px; object-fit: contain; }
+
+/* アレルギー表 */
+.allergy-scroll { margin-top: 12px; max-height: 330px; min-height: 0; overflow-y: auto; border: 1px solid var(--line-gold); border-radius: 6px; }
+
+/* 履歴・会計 */
+.history-scroll { margin-top: 12px; max-height: 300px; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+.history-order { border: 1px solid var(--line-gold); border-radius: 8px; overflow: hidden; flex-shrink: 0; }
+.history-order-head {
+  display: flex; justify-content: space-between;
+  padding: 8px 10px;
+  background: #F1DFBE;
+  font-size: 13.5px; font-weight: bold;
+  color: var(--ink);
+}
+.history-order .m-row { padding: 6px 10px; }
+.history-order .m-row + .m-row { border-top: 1px dashed rgba(201, 160, 99, 0.5); }
+.allergy-table { width: 100%; border-collapse: collapse; font-size: 13.5px; color: var(--ink); }
+.allergy-table th, .allergy-table td {
+  border-bottom: 1px solid rgba(201, 160, 99, 0.45);
+  padding: 7px 6px;
+  text-align: center;
+}
+.allergy-table th { background: #F1DFBE; font-size: 13px; position: sticky; top: 0; }
+.allergy-table td:first-child, .allergy-table th:first-child { text-align: left; padding-left: 12px; font-weight: bold; }
+.allergy-table .yes { color: #A50E0E; font-weight: bold; }
+
+/* 操作説明 */
+.help-steps { margin: 14px 0 0 22px; display: flex; flex-direction: column; gap: 13px; font-size: 14.5px; font-weight: bold; line-height: 1.65; color: #4A3623; }
+.help-steps li::marker { font-weight: bold; color: #A50E0E; }
+.help-steps strong { color: var(--ink); font-size: 15px; }
+.help-plus {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 19px; height: 19px;
+  border-radius: 50%;
+  background: var(--card-add);
+  color: #FBF1DC;
+  font-size: 13px; font-weight: bold;
+  vertical-align: -3px;
+}
+
+/* ＋ボタン押下時、ご注文内容パネルへ飛んでいく演出用の要素 */
+.fly-item {
+  position: absolute;
+  z-index: 150;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 30px;
+  border-radius: 50%;
+  overflow: hidden;
+  pointer-events: none;
+  transition: transform 0.55s cubic-bezier(0.3, 0.7, 0.4, 1), opacity 0.55s ease 0.15s;
+  will-change: transform, opacity;
+}
+.fly-item img { width: 100%; height: 100%; object-fit: cover; }
+
+/* カスタマイズ(トッピング) */
+.topping-body { display: flex; gap: 24px; }
+.topping-photo {
+  flex: none;
+  width: 224px; height: 224px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 42%, #FFF8E6, #F1DDBA);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 90px;
+}
+.topping-photo img { width: 100%; height: 100%; object-fit: cover; }
+.topping-info { flex: 1; min-width: 0; }
+.topping-name { font-size: 21px; font-weight: bold; color: var(--ink); }
+.topping-price { margin-top: 4px; font-size: 18px; font-weight: bold; color: var(--red); }
+.topping-qty { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+.topping-qty .q-btn { width: 28px; height: 28px; font-size: 16px; }
+.topping-qty .q-num { font-size: 16px; font-weight: bold; color: var(--ink); width: auto; }
+.topping-groups { margin-top: 14px; display: flex; flex-direction: column; gap: 12px; }
+.topping-group-label { font-size: 13.5px; font-weight: bold; color: var(--ink-sub); margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+.topping-group-label .spice-level { font-size: 13.5px; font-weight: bold; color: var(--red); }
+.topping-slider { padding: 0 4px; }
+.spice-range {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--line-gold), var(--red));
+  outline: none;
+}
+.spice-range::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 10px; height: 26px;
+  border-radius: 3px;
+  background: var(--red);
+  border: 2px solid #FFF3DC;
+  box-shadow: 0 1px 4px rgba(20, 8, 2, 0.4);
+  cursor: pointer;
+}
+.spice-range::-moz-range-thumb {
+  width: 10px; height: 26px;
+  border-radius: 3px;
+  background: var(--red);
+  border: 2px solid #FFF3DC;
+  box-shadow: 0 1px 4px rgba(20, 8, 2, 0.4);
+  cursor: pointer;
+}
+.spice-scale {
+  display: flex; justify-content: space-between;
+  margin-top: 4px;
+  padding: 0 3px;
+  font-size: 11px; font-weight: bold;
+  color: var(--ink-sub);
+}
+.topping-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.topping-pill {
+  padding: 7px 16px;
+  border: 1.5px solid var(--line-gold);
+  border-radius: 999px;
+  background: var(--card-bg);
+  font-size: 13.5px; font-weight: bold;
+  color: var(--ink);
+}
+.topping-pill.selected { background: var(--red); border-color: var(--red); color: #FFF3DC; }
+.topping-order-btn { width: 100%; margin-top: 18px; text-align: center; }
+
+/* トースト */
+/* メニューエリア(もっと見る等)の中心588.5pxに合わせる。位置がズレて見えないよう
+   拡大縮小を伴わない単純なフェードのみでポップインさせる */
+.toast {
+  position: absolute;
+  left: 588.5px; bottom: 62px;
+  transform: translateX(-50%);
+  background: rgba(30, 16, 7, 0.92);
+  color: #FFF6DC;
+  font-size: 14.5px;
+  padding: 11px 22px;
+  border-radius: 22px;
+  z-index: 120;
+  animation: toastFade 0.2s ease;
+  pointer-events: none;
+}
+@keyframes toastFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* =====================================================
+   ログインページ(新設)
+   ===================================================== */
+#loginScreen {
+  position: absolute; inset: 0;
+  z-index: 500;
+  overflow: hidden;
+}
+#loginScreen.hide-screen { display: none; }
+
+.curtain {
+  position: absolute; top: 0; width: 50%; height: 100%;
+  background:
+    repeating-linear-gradient(90deg, rgba(245, 197, 95, 0.10) 0 2px, transparent 2px 42px),
+    linear-gradient(160deg, #7A0E0E, #3A0505 70%);
+  transition: transform 0.75s cubic-bezier(0.65, 0, 0.35, 1);
+  z-index: 2;
+}
+.curtain-left  { left: 0; box-shadow: inset -14px 0 24px rgba(0, 0, 0, 0.4); }
+.curtain-right { right: 0; box-shadow: inset 14px 0 24px rgba(0, 0, 0, 0.4); }
+#loginScreen.opening .curtain-left  { transform: translateX(-100%); }
+#loginScreen.opening .curtain-right { transform: translateX(100%); }
+/* ホワイトアウトで画面が覆われている間にトランジション無しで状態を戻すためのスナップ */
+#loginScreen.snap .curtain, #loginScreen.snap .login-content { transition: none !important; }
+
+.login-content {
+  position: absolute; inset: 0;
+  z-index: 3;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  transition: opacity 0.3s ease;
+}
+#loginScreen.opening .login-content { opacity: 0; pointer-events: none; }
+
+/* メインメニュー左上のロゴ(.logo-wrap)と同じ構造・同じ.logo-textを流用して統一感を持たせる */
+.login-logo-wrap {
+  position: relative;
+  width: 200px; height: 193.5px;
+  filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.5));
+}
+.login-logo-wrap img { width: 100%; height: 100%; object-fit: contain; }
+.login-sub { font-size: 14px; color: var(--cream-tx2); margin-bottom: 8px; }
+.login-q { font-size: 18px; font-weight: bold; color: var(--cream-tx); }
+.login-stepper { display: flex; align-items: center; gap: 16px; margin: 6px 0 4px; }
+.login-step-btn {
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  background: var(--card-bg);
+  border: 1.5px solid var(--line-gold);
+  color: var(--red);
+  font-size: 20px; font-weight: bold;
+  display: flex; align-items: center; justify-content: center;
+}
+.login-step-btn:active { transform: scale(0.92); }
+.login-num { font-size: 40px; font-weight: bold; color: var(--gold-tx); min-width: 56px; text-align: center; }
+.login-unit { font-size: 16px; font-weight: bold; color: var(--cream-tx2); }
+.login-btn {
+  margin-top: 22px;
+  padding: 15px 46px;
+  border-radius: 30px;
+  background: linear-gradient(var(--gold-btn1), var(--gold-btn2));
+  color: #2A1B06; font-weight: bold; font-size: 16px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+.login-btn:active { transform: scale(0.97); }
+
+.whiteout {
+  position: absolute; inset: 0; z-index: 4;
+  background: #fff; opacity: 0; pointer-events: none;
+}
+#loginScreen.flash .whiteout { animation: whiteoutFlash 0.55s ease; }
+@keyframes whiteoutFlash {
+  0%   { opacity: 0; }
+  45%  { opacity: 0.9; }
+  100% { opacity: 0; }
+}
+
+/* =====================================================
+   注文確定中のローディング(新設): 鍋のアニメーション
+   ===================================================== */
+#loadingScreen {
+  position: absolute; inset: 0;
+  z-index: 120;
+  background: var(--dark);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 22px;
+}
+.pot-scene { position: relative; width: 160px; height: 130px; }
+.pot {
+  position: absolute; bottom: 6px; left: 50%;
+  width: 140px;
+  animation: potWobble 1.2s ease-in-out infinite;
+}
+@keyframes potWobble {
+  0%, 100% { transform: translateX(-50%) rotate(-1.5deg); }
+  50%      { transform: translateX(-50%) rotate(1.5deg); }
+}
+.pot-body {
+  width: 140px; height: 68px;
+  background: linear-gradient(#3A2A1B, #1E1007);
+  border: 3px solid var(--line-gold);
+  border-radius: 0 0 60px 60px / 0 0 42px 42px;
+}
+.pot-lid {
+  position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+  width: 112px; height: 20px;
+  background: linear-gradient(#5C4626, #3A2A1B);
+  border: 2px solid var(--line-gold);
+  border-radius: 50%;
+}
+.pot-knob {
+  position: absolute; top: -8px; left: 50%; transform: translateX(-50%);
+  width: 16px; height: 10px;
+  background: var(--gold-tx);
+  border-radius: 4px;
+}
+.pot-handle {
+  position: absolute; top: 12px; width: 16px; height: 24px;
+  border: 3px solid var(--line-gold);
+  border-radius: 8px;
+}
+.pot-handle.left  { left: -14px; }
+.pot-handle.right { right: -14px; }
+.steam {
+  position: absolute; bottom: 66px;
+  width: 10px; height: 36px;
+  border-radius: 50%;
+  background: rgba(245, 197, 95, 0.35);
+  filter: blur(2px);
+  opacity: 0;
+  animation: steamRise 1.8s ease-in-out infinite;
+}
+.steam.st1 { left: 42px; animation-delay: 0s; }
+.steam.st2 { left: 75px; animation-delay: 0.5s; }
+.steam.st3 { left: 108px; animation-delay: 1s; }
+@keyframes steamRise {
+  0%   { transform: translateY(0) scale(1); opacity: 0; }
+  25%  { opacity: 0.8; }
+  100% { transform: translateY(-64px) scale(1.5); opacity: 0; }
+}
+.loading-text { color: var(--cream-tx2); font-size: 15px; font-weight: bold; letter-spacing: 1px; }
+.loading-progress {
+  width: 220px; height: 6px;
+  border-radius: 999px;
+  background: rgba(245, 197, 95, 0.15);
+  overflow: hidden;
+}
+.loading-progress-bar {
+  height: 100%; width: 0%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--line-gold), var(--gold-tx));
+}
