@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>中華愛屋 セルフオーダー</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=BIZ+UDPMincho:wght@400;700&family=Yuji+Syuku&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- 画面比率が16:9でない場合の左右余白を飾る装飾(ステージの外側)
+     余白の実測幅に合わせてJS側で表示・サイズを調整する -->
+<div class="letterbox-deco left" id="letterboxLeft"></div>
+<div class="letterbox-deco right" id="letterboxRight"></div>
+<img class="letterbox-charm left" id="charmLeft" src="img/deco/happy2.svg" alt="">
+<img class="letterbox-charm right" id="charmRight" src="img/deco/happy2.svg" alt="">
+
+<div id="stage">
+
+  <!-- ===== ログインページ(新設): 人数入力→カーテンが開く演出→軽いホワイトアウトでメインページへ ===== -->
+  <div id="loginScreen">
+    <div class="curtain curtain-left"></div>
+    <div class="curtain curtain-right"></div>
+    <div class="login-content">
+      <div class="login-logo-wrap">
+        <img src="img/deco/logo_octagon.svg" alt="">
+        <div class="logo-text"><span>中</span><span>華</span><span>愛</span><span>屋</span></div>
+      </div>
+      <p class="login-sub">ご来店ありがとうございます</p>
+      <p class="login-q">何名のご利用ですか？</p>
+      <div class="login-stepper">
+        <button class="login-step-btn" id="peopleMinus">－</button>
+        <span class="login-num" id="peopleNum">2</span><span class="login-unit">名</span>
+        <button class="login-step-btn" id="peoplePlus">＋</button>
+      </div>
+      <button class="login-btn" id="btnEnter">注文開始 ＞</button>
+    </div>
+    <div class="whiteout"></div>
+  </div>
+
+  <!-- ===== 注文確定中のローディング(新設): 鍋のアニメーション ===== -->
+  <div id="loadingScreen" hidden>
+    <div class="pot-scene">
+      <div class="steam st1"></div>
+      <div class="steam st2"></div>
+      <div class="steam st3"></div>
+      <div class="pot">
+        <div class="pot-lid"><div class="pot-knob"></div></div>
+        <div class="pot-body"></div>
+        <div class="pot-handle left"></div>
+        <div class="pot-handle right"></div>
+      </div>
+    </div>
+    <p class="loading-text">ただいま注文を承っております…</p>
+    <div class="loading-progress"><div class="loading-progress-bar" id="loadingProgressBar"></div></div>
+  </div>
+
+  <!-- ===== 外周フレーム(雷紋の帯) ===== -->
+  <div class="edge edge-top"></div>
+  <div class="edge edge-bottom"></div>
+  <div class="edge edge-left"></div>
+  <div class="edge edge-right"></div>
+
+  <div class="band band-top">
+    <span class="seg gold"></span><span class="seg red"></span><span class="seg gold2"></span>
+  </div>
+  <div class="band band-bottom">
+    <span class="seg gold"></span><span class="seg red"></span><span class="seg gold2"></span>
+  </div>
+  <div class="band band-left">
+    <span class="seg gold"></span><span class="seg red"></span><span class="seg gold2"></span>
+  </div>
+  <div class="band band-right">
+    <span class="seg gold"></span><span class="seg red"></span><span class="seg gold2"></span>
+  </div>
+
+  <img class="lantern" src="img/deco/lantern.svg" alt="">
+
+  <!-- ===== 左サイドバー ===== -->
+  <div class="logo-wrap">
+    <img src="img/deco/logo_octagon.svg" alt="">
+    <div class="logo-text"><span>中</span><span>華</span><span>愛</span><span>屋</span></div>
+  </div>
+
+  <img class="deco-lotus" src="img/deco/lotus.svg" alt="">
+
+  <div class="table-card">
+    <img src="img/deco/frame_table.svg" alt="">
+    <div class="table-label">テーブル</div>
+    <div class="table-num"><span class="num">5</span><span class="ban">番</span></div>
+  </div>
+
+  <div class="side-menu">
+    <button class="side-btn" id="btnAllergy">
+      <span class="side-ico">!</span>アレルギー情報
+    </button>
+    <button class="side-btn" id="btnHelp">
+      <span class="side-ico">?</span>操作説明
+    </button>
+  </div>
+
+  <div class="lang-switch">
+    <svg class="globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+      <circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.7 3.8 9S14.5 18.4 12 21M12 3C9.5 5.6 8.2 8.7 8.2 12s1.3 6.4 3.8 9"/>
+    </svg>
+    <button class="lang active" data-lang="ja">日本語</button>
+    <span class="lang-sep"></span>
+    <button class="lang" data-lang="en">English</button>
+  </div>
+
+  <img class="deco-genbu" src="img/deco/genbu.svg" alt="">
+  <img class="deco-tora" src="img/deco/tora.svg" alt="">
+
+  <div class="v-divider"></div>
+
+  <!-- ===== お知らせ欄 ===== -->
+  <div class="ticker">
+    <div class="ticker-track" id="tickerTrack"></div>
+  </div>
+
+  <!-- ===== カテゴリタブ ===== -->
+  <nav class="tabs" id="tabs">
+    <button class="tab active" data-cat="osusume">
+      <span class="t-ico"><img src="img/deco/28116.png" alt=""></span>
+      <span class="tab-label">おすすめ</span>
+    </button>
+    <button class="tab" data-cat="men">
+      <span class="t-ico"><img src="img/deco/9901.png" alt=""></span>
+      <span class="tab-label">麺類</span>
+    </button>
+    <button class="tab" data-cat="han">
+      <span class="t-ico"><img src="img/deco/9940.png" alt=""></span>
+      <span class="tab-label">飯類</span>
+    </button>
+    <button class="tab" data-cat="ippin">
+      <span class="t-ico"><img src="img/deco/23750.png" alt=""></span>
+      <span class="tab-label">一品料理</span>
+    </button>
+    <button class="tab" data-cat="drink">
+      <span class="t-ico"><img src="img/deco/3320.png" alt=""></span>
+      <span class="tab-label">ドリンク<br>デザート</span>
+    </button>
+  </nav>
+
+  <!-- ===== 店員呼び出し / 履歴・会計 ===== -->
+  <button class="staff-call" id="btnStaff">
+    <span class="bell"><img src="img/deco/26449.png" alt=""></span>
+    <span class="staff-title">店員呼び出し</span>
+  </button>
+  <button class="staff-call" id="btnHistory">
+    <span class="bell"><img src="img/deco/32797.png" alt=""></span>
+    <span class="staff-title">履歴・会計</span>
+  </button>
+
+  <!-- メニューエリアの背景にうっすら流れる雲(新設)。menuAreaとは別要素にして
+       スクロールに巻き込まれず、常に同じ範囲にとどまるようにしている -->
+  <div class="cloud-layer" id="cloudLayer"></div>
+
+  <!-- ===== メイン(ヒーロー+メニュー) ===== -->
+  <main class="menu-area" id="menuArea">
+
+    <div class="hero-wrap" id="heroWrap">
+      <section class="hero" id="hero">
+        <img class="hero-dragon" src="img/deco/dragon_hero.svg" alt="">
+        <div class="hero-slides" id="heroSlides"></div>
+      </section>
+      <button class="h-arrow prev" id="heroPrev" aria-label="前のおすすめ"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <button class="h-arrow next" id="heroNext" aria-label="次のおすすめ"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
+    </div>
+    <div class="hero-dots" id="heroDots"></div>
+
+    <div class="section-head">
+      <span class="dia"></span>
+      <h2 id="sectionTitle">おすすめメニュー</h2>
+      <span class="rule"></span>
+    </div>
+
+    <div class="menu-grid" id="menuGrid"></div>
+
+    <div class="more-wrap">
+      <button class="more-btn" id="btnMore"><span>もっと見る</span><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span></button>
+    </div>
+
+    <!-- ジャンル最大展開後、上下の端でさらにドラッグするとジャンルが切り替わる際のヒント表示(新設) -->
+    <div class="swipe-hint" id="swipeHint">
+      <span class="swipe-hint-arrow">▼</span>
+      <span id="swipeHintLabel">次のジャンルへ</span>
+    </div>
+
+  </main>
+
+  <!-- ===== ご注文内容パネル ===== -->
+  <aside class="order-panel">
+    <div class="order-head">
+      <img class="cart-ico" id="cartIco" src="img/deco/cart.svg" alt="">
+      <h2>ご注文内容</h2>
+      <span class="cart-badge" id="cartBadge" hidden>0</span>
+    </div>
+
+    <div class="cart-items" id="cartItems">
+      <p class="cart-empty" id="cartEmpty">商品が選択されていません</p>
+    </div>
+
+    <div class="order-totals">
+      <div class="t-row"><span>小計</span><span id="subtotal">¥ 0</span></div>
+      <div class="t-row"><span>消費税(10%)</span><span id="tax">¥ 0</span></div>
+      <div class="t-sep"></div>
+      <div class="t-label">合計金額</div>
+      <div class="t-total"><span id="total">¥0</span><small></small></div>
+      <button class="confirm-btn" id="btnConfirm">注文を確定する<span class="arrow">›</span></button>
+    </div>
+  </aside>
+
+  <img class="deco-dragon-r" src="img/deco/dragon_right.svg" alt="">
+  <img class="deco-suzaku" src="img/deco/suzaku.svg" alt="">
+
+  <!-- ===== モーダル ===== -->
+  <div class="overlay" id="overlay" hidden>
+
+    <!-- カスタマイズ(トッピング) -->
+    <div class="modal wide" id="modalTopping" hidden>
+      <button class="m-close" data-close aria-label="閉じる">✕</button>
+      <div class="topping-body">
+        <div class="topping-photo" id="toppingPhoto"></div>
+        <div class="topping-info">
+          <h3 class="topping-name" id="toppingName"></h3>
+          <p class="topping-price" id="toppingPrice"></p>
+          <div class="topping-qty">
+            <button class="q-btn" id="toppingMinus">－</button>
+            <span class="q-num" id="toppingQty">1</span>
+            <button class="q-btn" id="toppingPlus">＋</button>
+          </div>
+          <div class="topping-groups" id="toppingGroups"></div>
+          <button class="m-btn primary topping-order-btn" id="toppingOrderBtn">この内容で注文する</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 注文確認 -->
+    <div class="modal" id="modalConfirm" hidden>
+      <h3 class="m-title"><span class="dia"></span>ご注文の確認</h3>
+      <p class="m-note">以下の内容でご注文を確定します。よろしいですか?</p>
+      <div class="m-list" id="confirmList"></div>
+      <div class="m-totalrow"><span>合計金額(+税)</span><strong id="confirmTotal">¥0</strong></div>
+      <div class="m-actions">
+        <button class="m-btn ghost" data-close>戻る</button>
+        <button class="m-btn primary" id="btnOrder">注文する</button>
+      </div>
+    </div>
+
+    <!-- 注文完了(注文商品の一覧と合計金額) -->
+    <div class="modal" id="modalDone" hidden>
+      <div class="done-mark">✓</div>
+      <h3 class="m-title center">ご注文を承りました</h3>
+      <p class="m-note center">お料理が届くまで今しばらくお待ちください。</p>
+      <h4 class="m-sub"><span class="dia"></span>ご注文いただいた商品</h4>
+      <div class="m-list" id="doneList"></div>
+      <div class="m-totalrow"><span>合計金額(税込)</span><strong id="doneTotal">¥0</strong></div>
+      <div class="m-actions center">
+        <button class="m-btn primary" data-close>閉じる</button>
+      </div>
+    </div>
+
+    <!-- 店員呼び出し -->
+    <div class="modal small" id="modalStaff" hidden>
+      <div class="staff-bell-big"><img src="img/deco/26449.png" alt=""></div>
+      <h3 class="m-title center">呼び出しを受け付けました</h3>
+      <p class="m-note center">店員がお伺いしますので<br>今しばらくお待ちください。</p>
+      <div class="m-actions center">
+        <button class="m-btn primary" data-close>閉じる</button>
+      </div>
+    </div>
+
+    <!-- 履歴・会計 -->
+    <div class="modal wide" id="modalHistory" hidden>
+      <h3 class="m-title"><span class="dia"></span>ご注文履歴・お会計</h3>
+      <p class="m-note">これまでのご注文内容です。お会計の際はボタンを押下し、レジへお進みください。</p>
+      <div class="history-scroll" id="historyList"></div>
+      <div class="m-totalrow"><span>合計金額(税込)</span><strong id="historyTotal">¥0</strong></div>
+      <div class="m-actions">
+        <button class="m-btn ghost" data-close>閉じる</button>
+        <button class="m-btn primary" id="btnCheckout">お会計</button>
+      </div>
+    </div>
+
+    <!-- 会計依頼完了(新設: 一定時間後またはボタンでログインページに戻り、次のお客様用にリセット) -->
+    <div class="modal small" id="modalCheckoutDone" hidden>
+      <div class="staff-bell-big"><img src="img/deco/32797.png" alt=""></div>
+      <h3 class="m-title center">お会計を承りました</h3>
+      <p class="m-note center">店員が対応いたしますので<br>レジまでお越しください</p>
+      <p class="m-note center" id="checkoutCountdown">5秒後にトップ画面に戻ります</p>
+      <div class="m-actions center">
+        <button class="m-btn primary" id="btnBackToLogin">今すぐトップ画面に戻る</button>
+      </div>
+    </div>
+
+    <!-- アレルギー情報 -->
+    <div class="modal wide" id="modalAllergy" hidden>
+      <h3 class="m-title"><span class="dia"></span>アレルギー情報</h3>
+      <p class="m-note">主なメニューに含まれるアレルギー物質(特定原材料)です。<br>詳しくは店員におたずねください。</p>
+      <div class="allergy-scroll">
+        <table class="allergy-table" id="allergyTable"></table>
+      </div>
+      <div class="m-actions center">
+        <button class="m-btn primary" data-close>閉じる</button>
+      </div>
+    </div>
+
+    <!-- 操作説明 -->
+    <div class="modal" id="modalHelp" hidden>
+      <h3 class="m-title"><span class="dia"></span>操作説明</h3>
+      <ol class="help-steps">
+        <li><strong>カテゴリを選ぶ</strong><br>画面上部のタブから見たいカテゴリをタップします。</li>
+        <li><strong>商品をカゴに入れる</strong><br>商品の<span class="help-plus">＋</span>ボタンをタップすると右側の「ご注文内容」<br>に追加されます。</li>
+        <li><strong>数量を調整する</strong><br>「ご注文内容」の −・＋ ボタンで数量を変更できます。</li>
+        <li><strong>注文を確定する</strong><br>「注文を確定する」をタップし、内容を確認して<br>注文完了です。</li>
+      </ol>
+      <div class="m-actions center">
+        <button class="m-btn primary" data-close>閉じる</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="toast" id="toast" hidden></div>
+
+</div>
+
+<script src="js/script.js"></script>
+</body>
+</html>
